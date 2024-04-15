@@ -6,6 +6,13 @@ float norm(const sf::Vector2f& v)
     return sqrt((v.x * v.x) + (v.y * v.y));
 }
 
+float updateRightTextPosition(sf::Text &text, const float& y, const sf::RenderWindow &window) 
+{
+    float textWidth = text.getLocalBounds().width + text.getLocalBounds().left;
+    text.setPosition({static_cast<float>(window.getSize().x) - textWidth - 10, y});
+    return text.getPosition().x;
+};
+
 bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& window)
 {
     sf::Vector2f position = object.getPosition();

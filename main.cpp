@@ -1,9 +1,5 @@
 #include "objects.h"
 
-void updateTextPosition(sf::Text &fpsText, sf::RenderWindow &window) {
-    float textWidth = fpsText.getLocalBounds().width + fpsText.getLocalBounds().left;
-    fpsText.setPosition(static_cast<float>(window.getSize().x) - textWidth - 10, 10.f);
-};
 
 
 int main()
@@ -26,12 +22,7 @@ int main()
     }
 
     // Настройка текста для отображения FPS
-    sf::Text fpsText;
-    fpsText.setFont(font);
-    fpsText.setCharacterSize(24);
-    fpsText.setFillColor(sf::Color::White);
-    fpsText.setString("FPS: ");
-    updateTextPosition(fpsText, window);
+    Info infoSystem(system, font, 20);
 
 
     sf::Text InputMassText;
@@ -152,7 +143,7 @@ int main()
 
                 case sf::Event::Resized:
                     {
-                        updateTextPosition(fpsText, window);
+                        infoSystem.updatePosition(window);
                         sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
                         window.setView(sf::View(visibleArea));
                     }
@@ -169,8 +160,7 @@ int main()
         frameCount++;
         if (frameTime >= 1.f) // Каждую секунду
         {
-            fpsText.setString("FPS: " + std::to_string(frameCount));
-            updateTextPosition(fpsText, window);
+            infoSystem.updateValues(frameCount);
             frameTime -= 1.f;
             frameCount = 0;
         }
@@ -191,9 +181,10 @@ int main()
         InputMassText.setString(inputString);
         system.updateVelocity();
 		system.updatePosition(); // Обновляем симуляцию
+        infoSystem.updatePosition(window);
+        infoSystem.draw(window);
         system.draw(window);
         window.draw(InputMassText); 
-        window.draw(fpsText); 
         
         if (frameTime >= 0.5)
             window.draw(cursor);
