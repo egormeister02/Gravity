@@ -1,12 +1,10 @@
 #include "objects.h"
 
-
-
 int main()
 {
 	System system({});
-    float mass = 5.f;
-    const float scaleFactor = 5.f;
+    float mass = 2.f;
+    const float scaleFactor = 2.f;
 	bool isDragging = false;
 	sf::Vector2f startPosition;  
       // Окно SFML 
@@ -35,13 +33,13 @@ int main()
     defaultMassText.setFont(font);
     defaultMassText.setCharacterSize(24);
     defaultMassText.setFillColor(sf::Color(255, 255, 255, 128));
-    defaultMassText.setString("default mass");
+    defaultMassText.setString("default mass = 2");
     defaultMassText.setPosition(240, 10);
     
     sf::CircleShape cursor(5);
     int y_cursor = 20;
     cursor.setPosition(5, y_cursor);
-    std::string inputString = "next object mass = 5";
+    std::string inputString = "next object mass = 2";
     bool typing = true;
     // Таймер для измерения времени между кадрами
     sf::Clock clock;
@@ -101,18 +99,10 @@ int main()
                         break;
 
                 case sf::Event::KeyPressed:
-                    if (event.key.code == sf::Keyboard::Return)
-                    {
-                        // Enter key was pressed, stop typing
-                        typing = false;
-                        // Here you can convert the inputString to a float and create the object with the mass
-                        // float mass = std::stof(inputString.substr(12)); // Extract the number part
-                        // Create object with mass...
-                    }
-                    else if (event.key.code == sf::Keyboard::Escape)
+                    if (event.key.code == sf::Keyboard::Escape)
                     {
                         // Escape key was pressed, clear the current input
-                        inputString = "next object mass = 5";
+                        inputString = "next object mass = 2";
                     }
                     else if (event.key.code == sf::Keyboard::Down)
                     {
@@ -135,6 +125,8 @@ int main()
                         {
                             // Прокрутка вниз, уменьшаем массу
                             mass /= scaleFactor;
+                            if (mass < 0.000001)
+                                mass = 0.000001;
                         }
 
                         inputString = "next object mass = " + std::to_string(mass);
@@ -143,7 +135,6 @@ int main()
 
                 case sf::Event::Resized:
                     {
-                        infoSystem.updatePosition(window);
                         sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
                         window.setView(sf::View(visibleArea));
                     }
@@ -154,17 +145,16 @@ int main()
             }
         }
 
-        window.clear();
-
         frameTime += clock.restart().asSeconds();
         frameCount++;
         if (frameTime >= 1.f) // Каждую секунду
         {
-            infoSystem.updateValues(frameCount);
+            infoSystem.updateFPS(frameCount);
             frameTime -= 1.f;
             frameCount = 0;
         }
-        
+
+        window.clear();
 
         std::string numericPart = inputString.substr(19);
         try 
@@ -173,21 +163,21 @@ int main()
         }
         catch (const std::invalid_argument& e) 
         {
-            mass = 5;
+            mass = 2;
             window.draw(defaultMassText);
         }
 
-
         InputMassText.setString(inputString);
-        system.updateVelocity();
-		system.updatePosition(); // Обновляем симуляцию
-        infoSystem.updatePosition(window);
-        infoSystem.draw(window);
+
+        system.update(window);
         system.draw(window);
-        window.draw(InputMassText); 
+
+        infoSystem.update(window);
+        infoSystem.draw(window);
         
-        if (frameTime >= 0.5)
-            window.draw(cursor);
+        window.draw(InputMassText);     
+        window.draw(cursor);
+        
         window.display();
     }
 }

@@ -107,7 +107,6 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		{
 			obj.move(obj.getVelocity() * dt);
 		}
-		updateTotalInMoment();
 	}
 
 	void System::updateTotalInMoment()
@@ -120,20 +119,28 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		totalPosition = totalInMoment / totalMass;
 	}
 
-	void System::draw(sf::RenderWindow& window) 
-    {
-        std::vector<Object*> toErase;
+	void System::update(sf::RenderWindow& window)
+	{
+		updateVelocity();
+		updatePosition();
+
+		std::vector<Object*> toErase;
+
         for (Object& obj : objects)
-        {
             if (!isInsideWindow(obj, window))
                 toErase.push_back(&obj);
-            else
-                window.draw(obj);
-        }
+
         for (Object* obj : toErase)
-        {
             eraseObject(*obj);
-        }
+
+		updateTotalMass();
+		updateTotalInMoment();
+	}
+
+	void System::draw(sf::RenderWindow& window) 
+    {
+        for (Object& obj : objects)
+            window.draw(obj);
     }
 
 	
@@ -146,3 +153,74 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
         }
     }
 
+
+	Info::Info(const System& sys, const sf::Font& font, unsigned int characterSize): system(sys)
+	{
+		for (int i = 0; i < info_names.size(); i++) 
+		{
+			entries.push_back({sf::Text(info_names[i], font, characterSize), sf::Text( "", font,characterSize)});
+			entries[i].name.setFillColor(sf::Color::White);
+			entries[i].value.setFillColor(sf::Color::White);
+		}
+
+		maxWidthName = getMaxWidthName();
+		height = entries[0].name.getLocalBounds().height;
+	}
+
+	void Info::updateFPS(const int& fps)
+	{
+		entries[0].value.setString(std::to_string(fps));
+	}
+
+	void Info::updateValues()
+	{
+		entries[1].value.setString(std::to_string(system.getTotalMass()));
+		entries[2].value.setString('{' + std::to_string(system.getInMoment().x) + ", " + std::to_string(system.getInMoment().y) + '}');
+	}
+
+	void Info::updatePosition(const sf::RenderWindow& window)
+	{
+		float min_x = static_cast<float>(window.getSize().x);
+		float y = 10;
+		for (Entry& entry : entries)
+		{
+			if (updateRightTextPosition(entry.value, y, window) < min_x)
+				min_x = entry.value.getPosition().x;
+			y += height + 10;
+		}
+		updateNamePosition(min_x);
+	}
+
+	void Info::update(const sf::RenderWindow& window)
+	{
+		updateValues();
+		updatePosition(window);
+	}
+
+	void Info::draw(sf::RenderWindow& window)
+	{
+		for (const Entry& entry: entries)
+		{
+			window.draw(entry.value);
+			window.draw(entry.name);
+		}
+	}
+
+	float Info::getMaxWidthName() const
+	{
+		float maxWidth = 0;
+		for (const Entry& entry : entries)
+		{
+			if (entry.name.getLocalBounds().width > maxWidth)
+				maxWidth = entry.name.getLocalBounds().width;
+		}
+		return maxWidth;
+	}
+
+	void Info::updateNamePosition(const float& min_x)
+	{
+		for (Entry& entry : entries)
+		{
+			entry.name.setPosition({min_x - maxWidthName, static_cast<float>(entry.value.getPosition().y)});
+		}
+	}

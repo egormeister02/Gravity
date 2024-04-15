@@ -37,34 +37,33 @@ public:
 
     System(const std::vector<Object>& obj);
 
-    void addObject(const Object& obj);
+	void update(sf::RenderWindow& window);
 
-	void eraseObject(Object& obj);
+    void addObject(const Object& obj);
 
     float getTotalMass() const;
 
 	sf::Vector2f getInMoment() const;
-	
-	void updateVelocity();
 
-	void updatePosition();
-
-	void updateTotalInMoment();
-
-	void draw(sf::RenderWindow& window);
-
-	
+	void draw(sf::RenderWindow& window);	
 
 private:
 
 	const float G  =      20000;
 	const float dt =    1/200.f;
 
-    float 				totalMass = 0;
-	sf::Vector2f    totalPosition = {0, 0};
-	sf::Vector2f    totalInMoment = {0, 0};
+    float 				totalMass;
+	sf::Vector2f    totalPosition;
+	sf::Vector2f    totalInMoment; 
 	std::vector<Object>   objects;
 
+	void eraseObject(Object& obj);
+
+	void updateVelocity();
+
+	void updatePosition();
+
+	void updateTotalInMoment();
 
     void updateTotalMass();
 };
@@ -73,53 +72,20 @@ class Info
 {
 	public:
 
-	Info(const System& sys, const sf::Font& font, unsigned int characterSize): system(sys)
-	{
-		for (int i = 0; i < info_names.size(); i++) 
-		{
-			entries.push_back({sf::Text(info_names[i], font, characterSize), sf::Text( "", font,characterSize)});
-			entries[i].name.setFillColor(sf::Color::White);
-			entries[i].value.setFillColor(sf::Color::White);
-		}
+	Info(const System& sys, const sf::Font& font, unsigned int characterSize);
 
-		maxWidthName = getMaxWidthName();
-		height = entries[0].name.getLocalBounds().height;
-	}
+	void updateFPS(const int& fps);
 
-	void updateValues(const int& fps)
-	{
-		entries[0].value.setString(std::to_string(fps));
-		entries[1].value.setString(std::to_string(system.getTotalMass()));
-		entries[2].value.setString('{' + std::to_string(system.getInMoment().x) + ", " + std::to_string(system.getInMoment().y) + '}');
-	}
+	void update(const sf::RenderWindow& window);
 
-	void updatePosition(const sf::RenderWindow& window)
-	{
-		float min_x = static_cast<float>(window.getSize().x);
-		float y = 10;
-		for (Entry& entry : entries)
-		{
-			if (updateRightTextPosition(entry.value, y, window) < min_x)
-				min_x = entry.value.getPosition().x;
-			y += height + 10;
-		}
-		updateNamePosition(min_x);
-	}
-
-	void draw(sf::RenderWindow& window)
-	{
-		for (const Entry& entry: entries)
-		{
-			window.draw(entry.value);
-			window.draw(entry.name);
-		}
-	}
+	void draw(sf::RenderWindow& window);
 
 	private:
 
-	const System& system;
-	float maxWidthName;
-	float height;
+	const System&  		  system;
+
+	float 			maxWidthName;
+	float 			 	  height;
 
 	struct Entry
 	{
@@ -129,23 +95,12 @@ class Info
 
 	std::vector<Entry> entries;
 
-	float getMaxWidthName() const
-	{
-		float maxWidth = 0;
-		for (const Entry& entry : entries)
-		{
-			if (entry.name.getLocalBounds().width > maxWidth)
-				maxWidth = entry.name.getLocalBounds().width;
-		}
-		return maxWidth;
-	}
+	void updateValues();
 
-	void updateNamePosition(const float& min_x)
-	{
-		for (Entry& entry : entries)
-		{
-			entry.name.setPosition({min_x - maxWidthName, static_cast<float>(entry.value.getPosition().y)});
-		}
-	}
+	void updatePosition(const sf::RenderWindow& window);
+
+	float getMaxWidthName() const;
+
+	void updateNamePosition(const float& min_x);
 
 };
