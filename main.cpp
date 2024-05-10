@@ -13,15 +13,17 @@ int main()
     std::cout << "OK\n";
     // Загрузка шрифта
     sf::Font font;
-    if (!font.loadFromFile("../font.ttf")) // Укажите путь к файлу шрифта
+    if (!font.loadFromFile("../font.ttf")) 
     {
         std::cerr << "Could not load font\n";
         return -1;
     }
+
     System system({});
     system.setWindowSize(window);
+
     Button::font = font;
-    // Настройка текста для отображения FPS
+
     Info infoSystem(system, font, 20);
     Input inputSystem(font, 20);
 
@@ -32,12 +34,37 @@ int main()
         system.clearObjects(); // Очистка всех объектов в системе
     });
 
+    Button pauseButton({10, inputSystem.getPosition().y + inputSystem.getSize().y + 40}, {150, 50}, "pause");
+    pauseButton.setAction([&inputSystem]()
+    {
+        static float last_dt;
+        if (inputSystem.getSpeed())
+        {
+            last_dt = inputSystem.getSpeed();
+            inputSystem.setSpeed(0);
+        }
+        else
+            inputSystem.setSpeed(last_dt);
+    });
+
+    Button centerButton({10, pauseButton.getPosition().y + pauseButton.getSize().y + 10}, {150, 50}, "to center");
+    centerButton.setAction([&system, &window]()
+    {
+        sf::Vector2f shift = (static_cast<sf::Vector2f>(window.getSize()) / 2.f) - system.getCenterMass();
+        system.move(shift);
+    });
+
+    Button stayButton({10, centerButton.getPosition().y + centerButton.getSize().y + 10}, {150, 50}, "stay");
+    stayButton.setAction([&system]()
+    {
+        system.stayObjects();
+    });
+
     // Таймер для измерения времени между кадрами
     sf::Clock clock;
     float frameTime = 0.f;
     int frameCount = 0;
 
-    printf("Start main loop\n");
     // Главный цикл
     while (window.isOpen())
     {
@@ -54,7 +81,10 @@ int main()
                 case sf::Event::MouseButtonPressed:
                     if (event.mouseButton.button == sf::Mouse::Left)
                     {
-                        if (!clearButton.handleEvent(event.mouseButton, window))
+                        if (!(clearButton.handleEvent(event.mouseButton, window) || 
+                              pauseButton.handleEvent(event.mouseButton, window) ||
+                              centerButton.handleEvent(event.mouseButton, window) ||
+                              stayButton.handleEvent(event.mouseButton, window)))
                         {
                             startPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
                             isDragging = true;
@@ -149,7 +179,10 @@ int main()
         //inputSystem.updateText();
         inputSystem.draw(window);
         clearButton.draw(window);
-
+        pauseButton.draw(window);
+        centerButton.draw(window);
+        stayButton.draw(window);
+        
         window.display();
     }
 }

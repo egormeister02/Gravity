@@ -65,6 +65,16 @@ public:
         mode = newMode;
     }
 
+	void move(sf::Vector2f shift)
+	{
+		for (Object& obj : objects)
+			obj.setPosition(obj.getPosition() + shift);
+
+		updateTotalMass();
+		updateTotalInMoment();
+		updateTotaAngular();
+	}
+
 	void update(sf::RenderWindow& window);
 
     void addObject(const Object& obj);
@@ -74,11 +84,34 @@ public:
         // Также необходимо обновить общую массу и момент системы
         updateTotalMass();
         updateTotalInMoment();
+		updateTotaAngular();
     }
+
+	void stayObjects()
+	{
+		sf::Vector2f d_vel = -totalAngular / totalMass;
+		for (Object& obj : objects)
+			obj.changeVelocity(d_vel);
+
+		updateTotalMass();
+        updateTotalInMoment();
+	}
 
     float getTotalMass() const;
 
+	void updateTotaAngular();
+
+	sf::Vector2f getTotalAngular() const
+	{
+		return totalAngular;
+	}
+
 	sf::Vector2f getInMoment() const;
+
+	sf::Vector2f getCenterMass() const
+	{
+		return centerMass;
+	};
 
 	float get_dt() const;
 
@@ -95,8 +128,9 @@ private:
 	float dt	   =    1/200.f;
 
     float 				totalMass;
-	sf::Vector2f    totalPosition;
+	sf::Vector2f       centerMass;
 	sf::Vector2f    totalInMoment; 
+	sf::Vector2f     totalAngular;
 	std::vector<Object>   objects;
 
 	void eraseObject(Object& obj);
@@ -209,9 +243,14 @@ class Input
 	{
 		return mass;
 	}
-	float getSpeed()
+	float getSpeed() const
 	{
 		return speed;
+	}
+
+	void setSpeed(float newSpeed)
+	{
+		speed = newSpeed;
 	}
 	
 	private:
@@ -256,7 +295,7 @@ public:
         // Установка формы кнопки
         shape.setPosition(position);
         shape.setSize(size);
-        shape.setFillColor(sf::Color::White);
+        shape.setFillColor(sf::Color(255, 255, 255, 128));
 
         // Установка текста кнопки
         buttonText.setFont(font);

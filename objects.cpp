@@ -52,6 +52,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
     {
         updateTotalMass();
 		updateTotalInMoment();
+		updateTotaAngular();
 	}
 
     void System::addObject(const Object& obj)
@@ -142,7 +143,16 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		{
 			totalInMoment += obj.getPosition() * obj.getMass();
 		}
-		totalPosition = totalInMoment / totalMass;
+		centerMass = totalInMoment / totalMass;
+	}
+
+	void System::updateTotaAngular()
+	{
+		totalAngular = {0, 0};
+		for(const Object& obj : objects)
+		{
+			totalAngular += static_cast<sf::Vector2f>(obj.getMass() * obj.getVelocity());
+		}
 	}
 
 	void System::update(sf::RenderWindow& window)
@@ -161,6 +171,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 
 		updateTotalMass();
 		updateTotalInMoment();
+		updateTotaAngular();
 	}
 
 	void System::draw(sf::RenderWindow& window) 
@@ -273,8 +284,8 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		int i = 0;
 		for (Entry& entry : entries)
 		{   
-			entry.name.setPosition({20, 10 + height * i});
-			entry.value.setPosition({entry.name.getPosition().x + maxWidthName, 10 + height * i});
+			entry.name.setPosition({20, 20 + (height + 5) * i});
+			entry.value.setPosition({entry.name.getPosition().x + maxWidthName, 20 + (height + 5) * i});
 
 			// Обновляем minY и maxY для overallBounds
 			minY = std::min(minY, entry.name.getPosition().y);
