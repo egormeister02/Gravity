@@ -41,6 +41,11 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		return mass;
 	}
 
+	void Object::setVelocity(sf::Vector2f vel)
+	{
+		velocity = vel;
+	}
+
 	sf::Vector2f Object::getVelocity() const
 	{
 		return velocity;
@@ -50,17 +55,75 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
     System::System(const std::vector<Object>& obj)
 		: objects(obj)
     {
+		// Устанавливаем толщину границы и цвет
+    	frame.setOutlineThickness(-3); // Отрицательное значение для внутренней границы
+    	frame.setOutlineColor(sf::Color::White); // Цвет границы - белый
+    	frame.setFillColor(sf::Color::Transparent); // Внутренняя часть прозрачная
+
         updateTotalMass();
 		updateTotalInMoment();
 		updateTotaAngular();
 	}
 
+	void System::setWindowSize(sf::RenderWindow& window) {
+        windowSize = static_cast<sf::Vector2f>(window.getSize());
+		frame.setSize(windowSize);
+    }
+
+    void System::setMode(Mode newMode) {
+        mode = newMode;
+    }
+
+	void System::move(sf::Vector2f shift)
+	{
+		for (Object& obj : objects)
+			obj.setPosition(obj.getPosition() + shift);
+
+		updateTotalMass();
+		updateTotalInMoment();
+		updateTotaAngular();
+	}
+	
     void System::addObject(const Object& obj)
     {
         objects.push_back(obj);
         totalMass += obj.getMass();
 		totalInMoment += obj.getMass()* obj.getPosition();
     }
+
+	void System::clearObjects() {
+        objects.clear();
+        // Также необходимо обновить общую массу и момент системы
+        updateTotalMass();
+        updateTotalInMoment();
+		updateTotaAngular();
+    }
+
+	void System::stayObjects()
+	{
+		sf::Vector2f d_vel = -totalAngular / totalMass;
+		for (Object& obj : objects)
+			obj.changeVelocity(d_vel);
+
+		updateTotalMass();
+        updateTotalInMoment();
+	}
+
+	sf::Vector2f System::getTotalAngular() const
+	{
+		return totalAngular;
+	}
+
+	System::Mode System::getMode() const
+	{
+		return mode;
+	}
+
+	sf::Vector2f System::getCenterMass() const
+	{
+		return centerMass;
+	};
+
 
 	float System::get_dt() const
 	{
@@ -178,6 +241,9 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
     {
         for (Object& obj : objects)
             window.draw(obj);
+
+		if (mode == WithWalls)
+			window.draw(frame);
     }
 
 	
@@ -213,6 +279,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 	{
 		entries[1].value.setString(std::to_string(system.getTotalMass()));
 		entries[2].value.setString('{' + std::to_string(system.getInMoment().x) + ", " + std::to_string(system.getInMoment().y) + '}');
+		entries[3].value.setString('{' + std::to_string(system.getTotalAngular().x) + ", " + std::to_string(system.getTotalAngular().y) + '}');
 	}
 
 	void Info::updatePosition(const sf::RenderWindow& window)
@@ -314,8 +381,6 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		overallBounds.height = maxY - minY;
 	}
 
-
-
 	float Input::getMaxWidthName() const
 	{
 		float maxWidth = 0;
@@ -326,3 +391,144 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		}
 		return maxWidth;
 	}
+
+	sf::Vector2f Input::getPosition() const
+    {
+        return {overallBounds.left, overallBounds.top};
+    }
+
+    // Метод для получения размера области ввода
+    sf::Vector2f Input::getSize() const
+    {
+        return {overallBounds.width, overallBounds.height};
+    }
+
+	void Input::wheelChangeValue(int direction)
+	{
+		if (mode == InputMass)
+    	{
+            mass *=          pow(2, direction);
+			mass  = (std::min(mass, 100000.f));
+            mass  =      (std::max(mass, 0.f));
+        }
+        if (mode == InputSpeed)
+        {
+			speed *=       pow(1.2, direction);
+			speed  = (std::min(speed, 1000.f));
+            speed  =    (std::max(speed, 0.f));
+		}
+		updateText();
+	}
+
+	void Input::draw(sf::RenderWindow& window) const
+	{
+		for (const Entry& entry: entries)
+		{
+			window.draw(entry.value);
+			window.draw(entry.name);
+		}
+		window.draw(cursor);
+	}
+
+	void Input::changeMode(sf::Keyboard::Key key)
+	{
+		if (key == sf::Keyboard::Up)
+			mode = static_cast<InputMode>((mode + nModes - 1) % nModes);
+		else	
+			mode = static_cast<InputMode>((mode + 1) % nModes);
+
+		cursor.setPosition({5, entries[static_cast<int>(mode)].name.getPosition().y + height / 2});
+	}
+
+	InputMode Input::getMode() const
+	{
+		return mode;
+	}
+
+	float Input::getMass() const
+	{
+		return mass;
+	}
+	float Input::getSpeed() const
+	{
+		return speed;
+	}
+
+	void Input::setSpeed(float newSpeed)
+	{
+		speed = newSpeed;
+	}
+
+	void Input::updateText()
+	{
+		entries[0].value.setString(std::to_string(mass));
+		entries[1].value.setString(std::to_string(speed));
+	}
+
+
+    Button::Button(const sf::Vector2f& position, const sf::Vector2f& size, const std::string& text)
+    : action([](){}) // Инициализация пустой функцией
+    {
+        // Установка формы кнопки
+        shape.setPosition(position);
+        shape.setSize(size);
+        shape.setFillColor(sf::Color(255, 255, 255, 128));
+
+        // Установка текста кнопки
+        buttonText.setFont(font);
+        buttonText.setString(text);
+        buttonText.setCharacterSize(24);
+        buttonText.setFillColor(sf::Color::Black);
+
+        centerText();
+    }
+
+    void Button::setAction(const std::function<void()>& newAction) {
+        action = newAction;
+    }
+
+    bool Button::handleEvent(const sf::Event::MouseButtonEvent& event, const sf::RenderWindow& window) 
+	{
+        if (shape.getGlobalBounds().contains(window.mapPixelToCoords(sf::Vector2i(event.x, event.y)))) 
+		{
+            action(); // Вызов связанного действия
+			return 1;
+		}
+		return 0;
+    }
+
+	sf::Vector2f  Button::getPosition() const
+	{
+		return shape.getPosition();
+	}
+
+	sf::Vector2f Button::getSize() const
+	{
+		return shape.getSize();
+	}
+
+    void Button::draw(sf::RenderWindow& window) const 
+	{
+        window.draw(shape);
+        window.draw(buttonText);
+    }
+
+
+	void Button::centerText() 
+	{
+        sf::FloatRect textRect = buttonText.getLocalBounds();
+        buttonText.setOrigin(textRect.left + textRect.width/2.0f, textRect.top  + textRect.height/2.0f);
+        sf::Vector2f buttonPos = shape.getPosition();
+        sf::Vector2f buttonSize = shape.getSize();
+        buttonText.setPosition(buttonPos.x + buttonSize.x/2.0f, buttonPos.y + buttonSize.y/2.0f);
+    }
+
+	void ClearButton::updatePosition(const sf::RenderWindow& window) {
+        sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
+        sf::Vector2f buttonSize = shape.getSize();
+        float padding = 10.0f; // Отступ от краев окна
+
+        // Установка новой позиции кнопки
+        shape.setPosition(windowSize.x - buttonSize.x - padding, windowSize.y - buttonSize.y - padding);
+        centerText();
+    }

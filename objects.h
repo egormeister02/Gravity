@@ -11,7 +11,7 @@ enum InputMode
 	InputSpeed = 1
 };
 
-const std::vector<std::string> info_names({"FPS: ", "Tatal mass: ", "Total moment: "});
+const std::vector<std::string> info_names({"FPS: ", "Tatal mass: ", "Total moment: ", "Total angular:"});
 const std::vector<std::string> inputNames({"next object mass: ", "Speed: "});
 
 float norm(const sf::Vector2f& v);
@@ -29,10 +29,7 @@ class Object: public sf::CircleShape
 
 	void changeVelocity(sf::Vector2f dv);
 
-	void setVelocity(sf::Vector2f vel)
-	{
-		velocity = vel;
-	}
+	void setVelocity(sf::Vector2f vel);
 
 	float getMass() const;
 
@@ -57,61 +54,31 @@ public:
 
     System(const std::vector<Object>& obj);
 
-	void setWindowSize(sf::RenderWindow& window) {
-        windowSize = static_cast<sf::Vector2f>(window.getSize());
-    }
+	void setWindowSize(sf::RenderWindow& window);
 
-    void setMode(Mode newMode) {
-        mode = newMode;
-    }
+    void setMode(Mode newMode);
 
-	void move(sf::Vector2f shift)
-	{
-		for (Object& obj : objects)
-			obj.setPosition(obj.getPosition() + shift);
+	Mode getMode() const;
 
-		updateTotalMass();
-		updateTotalInMoment();
-		updateTotaAngular();
-	}
+	void move(sf::Vector2f shift);
 
 	void update(sf::RenderWindow& window);
 
     void addObject(const Object& obj);
 
-	void clearObjects() {
-        objects.clear();
-        // Также необходимо обновить общую массу и момент системы
-        updateTotalMass();
-        updateTotalInMoment();
-		updateTotaAngular();
-    }
+	void clearObjects();
 
-	void stayObjects()
-	{
-		sf::Vector2f d_vel = -totalAngular / totalMass;
-		for (Object& obj : objects)
-			obj.changeVelocity(d_vel);
-
-		updateTotalMass();
-        updateTotalInMoment();
-	}
+	void stayObjects();
 
     float getTotalMass() const;
 
 	void updateTotaAngular();
 
-	sf::Vector2f getTotalAngular() const
-	{
-		return totalAngular;
-	}
+	sf::Vector2f getTotalAngular() const;
 
 	sf::Vector2f getInMoment() const;
 
-	sf::Vector2f getCenterMass() const
-	{
-		return centerMass;
-	};
+	sf::Vector2f getCenterMass() const;
 
 	float get_dt() const;
 
@@ -126,6 +93,8 @@ private:
 
 	const float G  =      20000;
 	float dt	   =    1/200.f;
+
+	sf::RectangleShape frame;
 
     float 				totalMass;
 	sf::Vector2f       centerMass;
@@ -189,69 +158,23 @@ class Input
 
 	Input(const sf::Font& font, unsigned int characterSize);
 
-	sf::Vector2f getPosition() const
-    {
-        return {overallBounds.left, overallBounds.top};
-    }
+	sf::Vector2f getPosition() const;
 
-    // Метод для получения размера области ввода
-    sf::Vector2f getSize() const
-    {
-        return {overallBounds.width, overallBounds.height};
-    }
+    sf::Vector2f getSize() const;
 
-	void wheelChangeValue(int direction)
-	{
-		if (mode == InputMass)
-    	{
-            mass *=          pow(2, direction);
-			mass  = (std::min(mass, 100000.f));
-            mass  =      (std::max(mass, 0.f));
-        }
-        if (mode == InputSpeed)
-        {
-			speed *=       pow(1.2, direction);
-			speed  = (std::min(speed, 1000.f));
-            speed  =    (std::max(speed, 0.f));
-		}
-		updateText();
-	}
+	void wheelChangeValue(int direction);
 
-	void draw(sf::RenderWindow& window) const
-	{
-		for (const Entry& entry: entries)
-		{
-			window.draw(entry.value);
-			window.draw(entry.name);
-		}
-		window.draw(cursor);
-	}
+	void draw(sf::RenderWindow& window) const;
 
-	void changeMode(sf::Keyboard::Key key)
-	{
-		if (key == sf::Keyboard::Up)
-			mode = static_cast<InputMode>((mode + nModes - 1) % nModes);
-		else	
-			mode = static_cast<InputMode>((mode + 1) % nModes);
+	void changeMode(sf::Keyboard::Key key);
 
-		cursor.setPosition({5, entries[static_cast<int>(mode)].name.getPosition().y + height / 2});
-	}
+	InputMode getMode() const;
 
-	void getMode() const;
+	float getMass() const;
 
-	float getMass() const
-	{
-		return mass;
-	}
-	float getSpeed() const
-	{
-		return speed;
-	}
+	float getSpeed() const;
 
-	void setSpeed(float newSpeed)
-	{
-		speed = newSpeed;
-	}
+	void setSpeed(float newSpeed);
 	
 	private:
 
@@ -270,11 +193,7 @@ class Input
 
 	sf::FloatRect overallBounds;
 
-	void updateText()
-	{
-		entries[0].value.setString(std::to_string(mass));
-		entries[1].value.setString(std::to_string(speed));
-	}
+	void updateText();
 
 	void updateValues();
 
@@ -289,65 +208,24 @@ public:
 
 	static inline sf::Font font;
 
-    Button(const sf::Vector2f& position, const sf::Vector2f& size, const std::string& text)
-    : action([](){}) // Инициализация пустой функцией
-    {
-        // Установка формы кнопки
-        shape.setPosition(position);
-        shape.setSize(size);
-        shape.setFillColor(sf::Color(255, 255, 255, 128));
+    Button(const sf::Vector2f& position, const sf::Vector2f& size, const std::string& text);
 
-        // Установка текста кнопки
-        buttonText.setFont(font);
-        buttonText.setString(text);
-        buttonText.setCharacterSize(24);
-        buttonText.setFillColor(sf::Color::Black);
+    void setAction(const std::function<void()>& newAction);
 
-        centerText();
-    }
+    bool handleEvent(const sf::Event::MouseButtonEvent& event, const sf::RenderWindow& window);
 
-    void setAction(const std::function<void()>& newAction) {
-        action = newAction;
-    }
+	sf::Vector2f  getPosition() const;
 
-    bool handleEvent(const sf::Event::MouseButtonEvent& event, const sf::RenderWindow& window) 
-	{
-        if (shape.getGlobalBounds().contains(window.mapPixelToCoords(sf::Vector2i(event.x, event.y)))) 
-		{
-            action(); // Вызов связанного действия
-			return 1;
-		}
-		return 0;
-    }
+	sf::Vector2f getSize() const;
 
-	sf::Vector2f  getPosition() const
-	{
-		return shape.getPosition();
-	}
-
-	sf::Vector2f getSize() const
-	{
-		return shape.getSize();
-	}
-
-    void draw(sf::RenderWindow& window) const 
-	{
-        window.draw(shape);
-        window.draw(buttonText);
-    }
+    void draw(sf::RenderWindow& window) const;
 
 	protected:
     sf::RectangleShape shape;
     sf::Text buttonText;
     std::function<void()> action; // Функция, которая будет вызвана при нажатии
 
-	void centerText() {
-        sf::FloatRect textRect = buttonText.getLocalBounds();
-        buttonText.setOrigin(textRect.left + textRect.width/2.0f, textRect.top  + textRect.height/2.0f);
-        sf::Vector2f buttonPos = shape.getPosition();
-        sf::Vector2f buttonSize = shape.getSize();
-        buttonText.setPosition(buttonPos.x + buttonSize.x/2.0f, buttonPos.y + buttonSize.y/2.0f);
-    }
+	void centerText();
 };
 
 class ClearButton : public Button
@@ -357,13 +235,5 @@ class ClearButton : public Button
 	ClearButton(const sf::Vector2f& size, const std::string& text)
     : Button({0, 0}, size, text) {}
 
-	void updatePosition(const sf::RenderWindow& window) {
-        sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
-        sf::Vector2f buttonSize = shape.getSize();
-        float padding = 10.0f; // Отступ от краев окна
-
-        // Установка новой позиции кнопки
-        shape.setPosition(windowSize.x - buttonSize.x - padding, windowSize.y - buttonSize.y - padding);
-        centerText();
-    }
+	void updatePosition(const sf::RenderWindow& window);
 };

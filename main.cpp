@@ -2,12 +2,9 @@
 
 int main()
 {
-	
-    float mass = 2.f;
     const float scaleFactor = 2.f;
 	bool isDragging = false;
 	sf::Vector2f startPosition;  
-      // Окно SFML 
     sf::RenderWindow window(sf::VideoMode({1400u, 1000u}), "Gravity Simulation");
 
     std::cout << "OK\n";
@@ -60,6 +57,12 @@ int main()
         system.stayObjects();
     });
 
+    Button wallsButton({10, stayButton.getPosition().y + centerButton.getSize().y + 10}, {150, 50}, "walls");
+    wallsButton.setAction([&system]()
+    {
+        system.setMode(static_cast<System::Mode>((system.getMode() + 1) % 2));
+    });
+
     // Таймер для измерения времени между кадрами
     sf::Clock clock;
     float frameTime = 0.f;
@@ -81,10 +84,11 @@ int main()
                 case sf::Event::MouseButtonPressed:
                     if (event.mouseButton.button == sf::Mouse::Left)
                     {
-                        if (!(clearButton.handleEvent(event.mouseButton, window) || 
-                              pauseButton.handleEvent(event.mouseButton, window) ||
+                        if (!(clearButton.handleEvent(event.mouseButton, window)  || 
+                              pauseButton.handleEvent(event.mouseButton, window)  ||
                               centerButton.handleEvent(event.mouseButton, window) ||
-                              stayButton.handleEvent(event.mouseButton, window)))
+                              stayButton.handleEvent(event.mouseButton, window)   ||
+                              wallsButton.handleEvent(event.mouseButton, window)))
                         {
                             startPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
                             isDragging = true;
@@ -182,7 +186,8 @@ int main()
         pauseButton.draw(window);
         centerButton.draw(window);
         stayButton.draw(window);
-        
+        wallsButton.draw(window);
+
         window.display();
     }
 }
