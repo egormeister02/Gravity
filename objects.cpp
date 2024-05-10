@@ -48,7 +48,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 
 
     System::System(const std::vector<Object>& obj)
-        : objects(obj)
+		: objects(obj)
     {
         updateTotalMass();
 		updateTotalInMoment();
@@ -60,6 +60,17 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
         totalMass += obj.getMass();
 		totalInMoment += obj.getMass()* obj.getPosition();
     }
+
+	float System::get_dt() const
+	{
+		return dt * 10000;
+	}
+
+	void System::set_dt(float d_t)
+	{
+		dt = d_t / 10000;
+	}
+	
 
 	void System::eraseObject(Object& obj)
 	{
@@ -98,6 +109,21 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 				
 			}
 			objects[i].changeVelocity(force / objects[i].getMass() * dt);
+
+			if (mode == WithWalls) 
+			{
+                sf::Vector2f pos = objects[i].getPosition();
+                sf::Vector2f vel = objects[i].getVelocity();
+
+                if (pos.x < 0 || pos.x > windowSize.x) {
+                    vel.x *= -1; // Отражение по горизонтали
+                }
+                if (pos.y < 0 || pos.y > windowSize.y) {
+                    vel.y *= -1; // Отражение по вертикали
+                }
+
+                objects[i].setVelocity(vel);
+            }
 		}
 	}
 
@@ -182,6 +208,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 	{
 		float min_x = static_cast<float>(window.getSize().x);
 		float y = 10;
+
 		for (Entry& entry : entries)
 		{
 			if (updateRightTextPosition(entry.value, y, window) < min_x)
@@ -197,7 +224,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		updatePosition(window);
 	}
 
-	void Info::draw(sf::RenderWindow& window)
+	void Info::draw(sf::RenderWindow& window) const
 	{
 		for (const Entry& entry: entries)
 		{
@@ -223,4 +250,68 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 		{
 			entry.name.setPosition({min_x - maxWidthName, static_cast<float>(entry.value.getPosition().y)});
 		}
+	}
+
+
+	Input::Input(const sf::Font& font, unsigned int characterSize)
+	{
+		for (int i = 0; i < inputNames.size(); i++) 
+		{
+			entries.push_back({sf::Text(inputNames[i], font, characterSize), sf::Text("", font, characterSize)});
+			entries[i].name.setFillColor(sf::Color::White);
+			entries[i].value.setFillColor(sf::Color::White);
+		}
+
+		maxWidthName = getMaxWidthName();
+		height = entries[0].name.getLocalBounds().height;
+
+		float minY = std::numeric_limits<float>::max();
+		float maxY = 0.f;
+		float minX = std::numeric_limits<float>::max();
+		float maxX = 0.f;
+
+		int i = 0;
+		for (Entry& entry : entries)
+		{   
+			entry.name.setPosition({20, 10 + height * i});
+			entry.value.setPosition({entry.name.getPosition().x + maxWidthName, 10 + height * i});
+
+			// Обновляем minY и maxY для overallBounds
+			minY = std::min(minY, entry.name.getPosition().y);
+			maxY = std::max(maxY, entry.name.getPosition().y + entry.name.getLocalBounds().height);
+			
+			// Обновляем minX и maxX для overallBounds
+			minX = std::min(minX, entry.name.getPosition().x);
+			maxX = std::max(maxX, entry.value.getPosition().x + entry.value.getLocalBounds().width);
+
+			++i;
+		}
+
+		updateText();
+
+		cursor = sf::CircleShape(5);
+		cursor.setPosition({5, entries[static_cast<int>(mode)].name.getPosition().y + height / 2});
+
+		// Обновляем minX и maxX для overallBounds с учетом курсора
+		minX = std::min(minX, cursor.getPosition().x);
+		maxX = std::max(maxX, cursor.getPosition().x + cursor.getRadius() * 2);
+
+		// Устанавливаем overallBounds
+		overallBounds.left = minX;
+		overallBounds.top = minY;
+		overallBounds.width = maxX - minX;
+		overallBounds.height = maxY - minY;
+	}
+
+
+
+	float Input::getMaxWidthName() const
+	{
+		float maxWidth = 0;
+		for (const Entry& entry : entries)
+		{
+			if (entry.name.getLocalBounds().width > maxWidth)
+				maxWidth = entry.name.getLocalBounds().width;
+		}
+		return maxWidth;
 	}
