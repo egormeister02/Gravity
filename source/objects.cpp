@@ -167,7 +167,7 @@ bool isInsideWindow(const sf::CircleShape& object, const sf::RenderWindow& windo
 				if(i != j)
 				{
 					sf::Vector2f direction = (objects[j].getPosition()) - (objects[i].getPosition());
-					if (norm(direction) > 5.f)
+					if (norm(direction) > 7.f)
 					force += float(G * objects[i].getMass() * objects[j].getMass() / pow(norm(direction), 3)) * direction;
 				}
 				

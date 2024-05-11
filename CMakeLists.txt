@@ -6,9 +6,9 @@ cmake_minimum_required(VERSION 3.10)
 project(Gravity)                    
 
 # исполняющие файлы и исходные коды
-add_library(objects STATIC objects.cpp)
+add_library(objects STATIC source/objects.cpp)
 target_include_directories(objects PUBLIC ${PROJECT_SOURCE_DIR})
-add_executable(${PROJECT_NAME} main.cpp)       
+add_executable(${PROJECT_NAME} source/main.cpp)       
 
 # указываем CMake где искать модули SFML
 set(SFML_DIR "./SFML-2.6.1/lib/cmake/SFML")       
